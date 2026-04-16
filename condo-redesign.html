@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Condo Redecoration Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F5F0E8;
+    --warm-white: #FAF8F4;
+    --charcoal: #2C2C2C;
+    --taupe: #8C7B6B;
+    --sage: #7A8C6E;
+    --dusty-rose: #C49A8A;
+    --gold: #B8956A;
+    --light-border: #E0D8CE;
+    --done-bg: #EDF2EA;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--cream);
+    color: var(--charcoal);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--charcoal);
+    color: var(--cream);
+    padding: 2.5rem 3rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    border: 1px solid rgba(184,149,106,0.3);
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    border: 1px solid rgba(184,149,106,0.2);
+  }
+  .header-eyebrow {
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 0.5rem;
+  }
+  header h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.8rem;
+    font-weight: 300;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+  }
+  header h1 em { font-style: italic; color: var(--dusty-rose); }
+
+  /* SAVE STATUS BAR */
+  .save-bar {
+    background: #1E1E1E;
+    padding: 0.5rem 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .save-status {
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-dot.saved    { background: #7A8C6E; }
+  .status-dot.saving   { background: var(--gold); animation: pulse 1s infinite; }
+  .status-dot.error    { background: #C47A7A; }
+  .status-dot.unsaved  { background: var(--taupe); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .save-btn {
+    padding: 0.4rem 1rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    background: var(--gold);
+    color: var(--charcoal);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .save-btn:hover { opacity: 0.85; }
+  .save-btn:disabled { opacity: 0.4; cursor: default; }
+
+  .progress-section {
+    background: var(--charcoal);
+    padding: 0 3rem 2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.6rem;
+    font-size: 0.7rem;
+    color: rgba(245,240,232,0.5);
+    letter-spacing: 0.1em;
+  }
+  #progress-label { color: var(--gold); }
+  .progress-track { height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--dusty-rose), var(--gold));
+    border-radius: 2px;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    width: 0%;
+  }
+
+  .stats-strip { display: flex; background: var(--warm-white); border-bottom: 1px solid var(--light-border); }
+  .stat-cell { flex: 1; padding: 1.2rem 1.5rem; border-right: 1px solid var(--light-border); text-align: center; }
+  .stat-cell:last-child { border-right: none; }
+  .stat-number { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 300; display: block; line-height: 1; }
+  .stat-label { font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--taupe); margin-top: 0.3rem; display: block; }
+
+  .main { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 260px); }
+
+  .sidebar { background: var(--warm-white); border-right: 1px solid var(--light-border); padding: 1.5rem 0; }
+  .sidebar-title { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--taupe); padding: 0 1.5rem 1rem; border-bottom: 1px solid var(--light-border); margin-bottom: 0.5rem; }
+  .room-btn {
+    display: flex; align-items: center; gap: 0.75rem;
+    width: 100%; padding: 0.75rem 1.5rem;
+    background: none; border: none; cursor: pointer;
+    font-family: 'DM Mono', monospace; font-size: 0.72rem;
+    color: var(--taupe); text-align: left; transition: all 0.2s; position: relative;
+  }
+  .room-btn:hover { background: var(--cream); color: var(--charcoal); }
+  .room-btn.active { background: var(--cream); color: var(--charcoal); }
+  .room-btn.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--gold); }
+  .room-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .room-progress-mini { margin-left: auto; font-size: 0.6rem; color: var(--sage); }
+
+  .add-room-form { padding: 1rem 1.5rem; border-top: 1px solid var(--light-border); margin-top: 0.5rem; }
+  .add-room-form input {
+    width: 100%; padding: 0.5rem 0.75rem;
+    font-family: 'DM Mono', monospace; font-size: 0.7rem;
+    background: var(--cream); border: 1px solid var(--light-border); border-radius: 4px; color: var(--charcoal); margin-bottom: 0.5rem;
+  }
+  .add-room-form input:focus { outline: none; border-color: var(--gold); }
+  .add-room-form button {
+    width: 100%; padding: 0.5rem;
+    font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.1em;
+    background: var(--charcoal); color: var(--cream); border: none; border-radius: 4px; cursor: pointer; transition: background 0.2s;
+  }
+  .add-room-form button:hover { background: var(--gold); }
+
+  .content { padding: 2rem 2.5rem; }
+  .room-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--light-border); }
+  .room-title { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 300; }
+  .room-subtitle { font-size: 0.65rem; color: var(--taupe); letter-spacing: 0.1em; margin-top: 0.2rem; }
+
+  .room-meta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+  .meta-card { background: var(--warm-white); border: 1px solid var(--light-border); border-radius: 6px; padding: 1rem; }
+  .meta-card-label { font-size: 0.58rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--taupe); margin-bottom: 0.5rem; }
+  .meta-card textarea, .meta-card input[type="text"] {
+    width: 100%; font-family: 'DM Mono', monospace; font-size: 0.72rem;
+    background: transparent; border: none; color: var(--charcoal); resize: none; line-height: 1.6;
+  }
+  .meta-card textarea:focus, .meta-card input:focus { outline: none; }
+
+  .color-swatches { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
+  .color-swatch { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s; position: relative; }
+  .color-swatch:hover { transform: scale(1.15); }
+  .color-swatch.selected { border-color: var(--charcoal); }
+  .color-swatch .swatch-name { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 0.5rem; white-space: nowrap; color: var(--taupe); display: none; }
+  .color-swatch:hover .swatch-name { display: block; }
+
+  .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 0.5rem; margin-top: 0.75rem; }
+  .theme-chip { padding: 0.4rem 0.6rem; border-radius: 20px; font-size: 0.6rem; letter-spacing: 0.05em; cursor: pointer; text-align: center; border: 1.5px solid transparent; transition: all 0.2s; }
+  .theme-chip.selected { border-color: var(--charcoal); font-weight: 500; }
+  .theme-chip:hover { transform: translateY(-1px); }
+
+  .category-section { margin-bottom: 1.5rem; }
+  .category-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; cursor: pointer; user-select: none; }
+  .category-icon { font-size: 1rem; }
+  .category-name { font-size: 0.65rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--taupe); }
+  .category-count { font-size: 0.6rem; color: var(--sage); margin-left: auto; }
+  .category-toggle { font-size: 0.6rem; color: var(--taupe); transition: transform 0.2s; }
+  .category-toggle.open { transform: rotate(90deg); }
+
+  .checklist { display: flex; flex-direction: column; gap: 0.4rem; }
+  .checklist-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.7rem 1rem; background: var(--warm-white); border: 1px solid var(--light-border); border-radius: 5px; transition: all 0.2s; }
+  .checklist-item:hover { border-color: var(--taupe); }
+  .checklist-item.done { background: var(--done-bg); border-color: rgba(122,140,110,0.3); }
+  .checklist-item.done .item-text { text-decoration: line-through; color: var(--taupe); opacity: 0.6; }
+
+  .item-check { width: 18px; height: 18px; border: 1.5px solid var(--light-border); border-radius: 3px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; background: white; }
+  .item-check:hover { border-color: var(--sage); }
+  .checklist-item.done .item-check { background: var(--sage); border-color: var(--sage); }
+  .check-mark { color: white; font-size: 10px; display: none; }
+  .checklist-item.done .check-mark { display: block; }
+
+  .item-text { flex: 1; font-size: 0.75rem; color: var(--charcoal); line-height: 1.4; }
+  .item-text[contenteditable="true"]:focus { outline: none; border-bottom: 1px solid var(--gold); }
+
+  .item-priority { font-size: 0.55rem; padding: 0.15rem 0.4rem; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .priority-high { background: #F5DDD9; color: #8B4040; }
+  .priority-med  { background: #F5EDDB; color: #8B6A30; }
+  .priority-low  { background: #E8F0E8; color: #3D6040; }
+
+  .item-actions { display: flex; gap: 0.3rem; opacity: 0; transition: opacity 0.15s; }
+  .checklist-item:hover .item-actions { opacity: 1; }
+  .item-btn { background: none; border: none; cursor: pointer; font-size: 0.65rem; color: var(--taupe); padding: 2px 4px; border-radius: 3px; transition: all 0.15s; }
+  .item-btn:hover { background: var(--cream); color: var(--charcoal); }
+  .item-btn.delete:hover { background: #FDECEA; color: #9B3333; }
+
+  .add-item-row { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+  .add-item-input { flex: 1; padding: 0.55rem 0.75rem; font-family: 'DM Mono', monospace; font-size: 0.72rem; background: var(--warm-white); border: 1px dashed var(--light-border); border-radius: 5px; color: var(--charcoal); transition: border-color 0.2s; }
+  .add-item-input:focus { outline: none; border-color: var(--gold); border-style: solid; }
+  .add-item-input::placeholder { color: var(--taupe); opacity: 0.6; }
+  .priority-select { padding: 0.5rem; font-family: 'DM Mono', monospace; font-size: 0.65rem; background: var(--warm-white); border: 1px solid var(--light-border); border-radius: 5px; color: var(--taupe); }
+  .add-btn { padding: 0.5rem 0.85rem; background: var(--charcoal); color: var(--cream); border: none; border-radius: 5px; font-family: 'DM Mono', monospace; font-size: 0.65rem; cursor: pointer; transition: background 0.2s; }
+  .add-btn:hover { background: var(--gold); }
+
+  .budget-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .budget-title { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--taupe); }
+  .budget-total { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-weight: 300; }
+  .budget-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center; font-size: 0.7rem; }
+  .budget-row input { padding: 0.35rem 0.5rem; font-family: 'DM Mono', monospace; font-size: 0.68rem; background: var(--cream); border: 1px solid var(--light-border); border-radius: 4px; color: var(--charcoal); }
+  .budget-row input:focus { outline: none; border-color: var(--gold); }
+  .budget-label-input { flex: 2; }
+  .budget-amount-input { flex: 1; }
+
+  .paint-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
+  .paint-chip { display: flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.6rem; border-radius: 20px; font-size: 0.62rem; background: var(--cream); border: 1px solid var(--light-border); }
+  .paint-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+  .empty-state { text-align: center; padding: 3rem 2rem; color: var(--taupe); }
+  .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.4; }
+  .empty-state p { font-size: 0.72rem; line-height: 1.6; }
+
+  .loading-overlay {
+    position: fixed; inset: 0;
+    background: rgba(44,44,44,0.75);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 1rem; z-index: 999;
+  }
+  .loading-overlay.hidden { display: none; }
+  .loading-spinner { width: 36px; height: 36px; border: 2px solid rgba(245,240,232,0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { color: var(--cream); font-size: 0.7rem; letter-spacing: 0.15em; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--cream); }
+  ::-webkit-scrollbar-thumb { background: var(--light-border); border-radius: 4px; }
+
+  @media (max-width: 700px) {
+    .main { grid-template-columns: 1fr; }
+    .sidebar { border-right: none; border-bottom: 1px solid var(--light-border); }
+    .room-meta-row { grid-template-columns: 1fr; }
+    header, .save-bar, .progress-section { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .content { padding: 1.5rem; }
+    .stats-strip { flex-wrap: wrap; }
+    .stat-cell { min-width: 50%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Loading your planner…</div>
+</div>
+
+<header>
+  <div class="header-eyebrow">Interior Renovation Planner</div>
+  <h1><em>Condo</em> Redesign</h1>
+</header>
+
+<div class="save-bar">
+  <div class="save-status">
+    <div class="status-dot unsaved" id="status-dot"></div>
+    <span id="status-text" style="color:rgba(245,240,232,0.6)">Not saved yet</span>
+  </div>
+  <button class="save-btn" id="save-btn" onclick="saveToServer()">💾 Save to Server</button>
+</div>
+
+<div class="progress-section">
+  <div class="progress-meta">
+    <span>Overall Progress</span>
+    <span id="progress-label">0%</span>
+  </div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progress-fill"></div>
+  </div>
+</div>
+
+<div class="stats-strip">
+  <div class="stat-cell"><span class="stat-number" id="stat-total">0</span><span class="stat-label">Total Tasks</span></div>
+  <div class="stat-cell"><span class="stat-number" id="stat-done">0</span><span class="stat-label">Completed</span></div>
+  <div class="stat-cell"><span class="stat-number" id="stat-rooms">0</span><span class="stat-label">Rooms</span></div>
+  <div class="stat-cell"><span class="stat-number" id="stat-budget">$0</span><span class="stat-label">Est. Budget</span></div>
+</div>
+
+<div class="main">
+  <aside class="sidebar">
+    <div class="sidebar-title">Rooms & Spaces</div>
+    <div id="room-list"></div>
+    <div class="add-room-form">
+      <input type="text" id="new-room-input" placeholder="New room name…" />
+      <button onclick="addRoom()">+ Add Room</button>
+    </div>
+  </aside>
+  <main class="content" id="main-content">
+    <div class="empty-state"><div class="empty-icon">🏠</div><p>Loading…</p></div>
+  </main>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// ██  CONFIGURATION — UPDATE THESE TWO LINES BEFORE UPLOADING
+// ═══════════════════════════════════════════════════════════════
+const SAVE_URL   = 'https://servingcitrus.com/planner/save.php';
+const SECRET_KEY = 'wiggly786';
+// ═══════════════════════════════════════════════════════════════
+
+const AUTOSAVE_DELAY = 3000;
+let autosaveTimer = null;
+let hasUnsavedChanges = false;
+
+const PAINT_COLORS = [
+  { name: "Agreeable Gray",   hex: "#BDB5AC" },
+  { name: "Accessible Beige", hex: "#C9BBAA" },
+  { name: "Alabaster",        hex: "#EDEAE0" },
+  { name: "Repose Gray",      hex: "#B2AEA5" },
+  { name: "Sea Salt",         hex: "#B2C4BE" },
+  { name: "Mindful Gray",     hex: "#A9A299" },
+  { name: "Creamy",           hex: "#F2EAD6" },
+  { name: "Sage Green",       hex: "#8FA89E" },
+  { name: "Naval Blue",       hex: "#3D4B5C" },
+  { name: "Tricorn Black",    hex: "#2C2C2C" },
+  { name: "Pure White",       hex: "#F8F6F0" },
+  { name: "Dusty Rose",       hex: "#C49A8A" },
+];
+
+const THEMES = [
+  { name: "Coastal",      color: "#D4E8E4", text: "#3A5F5C" },
+  { name: "Japandi",      color: "#E8E4DC", text: "#4A4038" },
+  { name: "Maximalist",   color: "#F5E6D8", text: "#7A3D20" },
+  { name: "Minimalist",   color: "#F0EFED", text: "#444"    },
+  { name: "Boho",         color: "#F0E4D0", text: "#7A5030" },
+  { name: "Industrial",   color: "#E0DDD8", text: "#3A3A3A" },
+  { name: "Art Deco",     color: "#EEE8D5", text: "#6A5A30" },
+  { name: "Scandinavian", color: "#EBF0EE", text: "#3A5040" },
+  { name: "Mid-Century",  color: "#F5EDD8", text: "#7A4818" },
+  { name: "Contemporary", color: "#EDEBEA", text: "#404040" },
+];
+
+const CATEGORIES = [
+  { id: "planning",  label: "Planning & Design",           icon: "📐" },
+  { id: "paint",     label: "Paint & Walls",               icon: "🎨" },
+  { id: "flooring",  label: "Flooring",                    icon: "🪵" },
+  { id: "furniture", label: "Furniture",                   icon: "🛋️" },
+  { id: "lighting",  label: "Lighting",                    icon: "💡" },
+  { id: "decor",     label: "Décor & Accessories",         icon: "🌿" },
+  { id: "textiles",  label: "Textiles & Soft Furnishings", icon: "🧶" },
+  { id: "storage",   label: "Storage & Organization",      icon: "📦" },
+  { id: "tech",      label: "Tech & Utilities",            icon: "🔌" },
+  { id: "finishing", label: "Finishing Touches",           icon: "✨" },
+];
+
+const DEFAULT_ITEMS = {
+  planning:  ["Define overall style / mood board","Set total budget","Measure all rooms","Hire interior designer (optional)","Create timeline"],
+  paint:     ["Choose wall color","Choose trim color","Buy paint samples","Test swatches on walls","Purchase paint","Prep walls (spackle, sand)","Prime walls","Paint walls","Paint trim & baseboards"],
+  flooring:  ["Decide on flooring type","Measure square footage","Get 3 quotes","Order flooring material","Remove old flooring","Install new flooring"],
+  furniture: ["List furniture needed","Research styles & dimensions","Visit showrooms","Order key pieces","Arrange delivery windows","Assemble / install"],
+  lighting:  ["Audit current lighting","Plan new light sources","Choose ceiling fixtures","Choose lamps & sconces","Order fixtures","Install / hire electrician"],
+  decor:     ["Select art & wall hangings","Buy plants & planters","Choose mirrors","Select vases & objects","Hang art & decor"],
+  textiles:  ["Choose curtains / blinds","Select rugs","Pick throw pillows & blankets","Order bedding (if applicable)","Install curtain rods"],
+  storage:   ["Identify storage needs","Choose shelving solutions","Declutter before move-in","Install shelves / built-ins","Style open shelving"],
+  tech:      ["Plan cable management","Order smart home devices (optional)","Set up TV / media console","Install smart lighting (optional)"],
+  finishing: ["Deep clean","Final styling walkthrough","Touch-up paint","Photograph completed space","Celebrate! 🥂"],
+};
+
+const ROOM_COLORS = ["#C49A8A","#7A8C6E","#B8956A","#8A9CB8","#A88AAA","#8AB8A8","#B8A87A","#A8887A"];
+
+let state = { rooms: [], activeRoom: null };
+
+function createRoom(name, colorIdx = 0) {
+  const cats = {};
+  CATEGORIES.forEach(c => { cats[c.id] = { items: [], collapsed: false }; });
+  return { id: uid(), name, color: ROOM_COLORS[colorIdx % ROOM_COLORS.length], notes: "", theme: "", selectedColors: [], budget: [], categories: cats };
+}
+function uid() { return Math.random().toString(36).slice(2, 10); }
+
+function initDefaults() {
+  ["Living Room","Bedroom","Kitchen","Bathroom","Entryway"].forEach((name, i) => {
+    const room = createRoom(name, i);
+    CATEGORIES.forEach(cat => {
+      (DEFAULT_ITEMS[cat.id]||[]).forEach(text => {
+        room.categories[cat.id].items.push({ id: uid(), text, done: false, priority: 'med' });
+      });
+    });
+    state.rooms.push(room);
+  });
+  state.activeRoom = state.rooms[0].id;
+}
+
+// ── SERVER SAVE / LOAD ─────────────────────────────────────────
+async function loadFromServer() {
+  try {
+    const res = await fetch(`${SAVE_URL}?key=${encodeURIComponent(SECRET_KEY)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (data && data.rooms && data.rooms.length > 0) {
+      state = data;
+      setStatus('saved', 'Loaded from server');
+    } else {
+      initDefaults();
+      setStatus('unsaved', 'New planner — save when ready');
+    }
+  } catch (err) {
+    console.warn('Server load failed, trying localStorage:', err);
+    try {
+      const local = localStorage.getItem('condo-planner-v2');
+      if (local) { state = JSON.parse(local); setStatus('error', 'Server unavailable — loaded from browser cache'); }
+      else { initDefaults(); setStatus('error', 'Server unavailable — check SAVE_URL in HTML'); }
+    } catch(e) { initDefaults(); }
+  }
+  document.getElementById('loading-overlay').classList.add('hidden');
+  render();
+}
+
+async function saveToServer() {
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true;
+  setStatus('saving', 'Saving…');
+  try {
+    const res = await fetch(`${SAVE_URL}?key=${encodeURIComponent(SECRET_KEY)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state),
+    });
+    const data = await res.json();
+    if (data.success) {
+      setStatus('saved', `Saved · ${new Date().toLocaleTimeString()}`);
+      hasUnsavedChanges = false;
+      try { localStorage.setItem('condo-planner-v2', JSON.stringify(state)); } catch(e) {}
+    } else {
+      throw new Error(data.error || 'Unknown error');
+    }
+  } catch (err) {
+    setStatus('error', 'Save failed — ' + err.message);
+  }
+  btn.disabled = false;
+}
+
+function setStatus(type, message) {
+  document.getElementById('status-dot').className  = 'status-dot ' + type;
+  document.getElementById('status-text').textContent = message;
+}
+
+function markUnsaved() {
+  if (!hasUnsavedChanges) { hasUnsavedChanges = true; setStatus('unsaved', 'Unsaved changes…'); }
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(() => saveToServer(), AUTOSAVE_DELAY);
+}
+
+// ── COMPUTED ───────────────────────────────────────────────────
+function allItems() { return state.rooms.flatMap(r => Object.values(r.categories).flatMap(c => c.items)); }
+function totalBudget() { return state.rooms.reduce((s, r) => s + r.budget.reduce((b, i) => b + (parseFloat(i.amount)||0), 0), 0); }
+function roomStats(room) { const items = Object.values(room.categories).flatMap(c=>c.items); return { total: items.length, done: items.filter(i=>i.done).length }; }
+
+// ── RENDER ─────────────────────────────────────────────────────
+function render() { renderSidebar(); renderStats(); renderContent(); }
+
+function renderSidebar() {
+  document.getElementById('room-list').innerHTML = state.rooms.map(room => {
+    const { total, done } = roomStats(room);
+    const pct = total ? Math.round((done/total)*100) : 0;
+    return `<button class="room-btn ${room.id===state.activeRoom?'active':''}" onclick="selectRoom('${room.id}')">
+      <span class="room-dot" style="background:${room.color}"></span>${room.name}
+      <span class="room-progress-mini">${pct}%</span></button>`;
+  }).join('');
+  document.getElementById('stat-rooms').textContent = state.rooms.length;
+}
+
+function renderStats() {
+  const items = allItems(), done = items.filter(i=>i.done).length;
+  const pct = items.length ? Math.round((done/items.length)*100) : 0;
+  document.getElementById('stat-total').textContent  = items.length;
+  document.getElementById('stat-done').textContent   = done;
+  document.getElementById('stat-budget').textContent = '$' + totalBudget().toLocaleString();
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = pct + '%';
+}
+
+function renderContent() {
+  const room = state.rooms.find(r => r.id === state.activeRoom);
+  if (!room) { document.getElementById('main-content').innerHTML = `<div class="empty-state"><div class="empty-icon">🏠</div><p>Select a room from the sidebar.</p></div>`; return; }
+  const { total, done } = roomStats(room);
+
+  let html = `
+    <div class="room-header">
+      <div>
+        <div class="room-title">${room.name}</div>
+        <div class="room-subtitle">${done} of ${total} tasks complete</div>
+      </div>
+      <button onclick="deleteRoom('${room.id}')" style="background:none;border:none;cursor:pointer;font-size:0.65rem;color:var(--taupe);padding:0.4rem 0.6rem;border-radius:4px;" onmouseover="this.style.background='#FDECEA';this.style.color='#9B3333'" onmouseout="this.style.background='none';this.style.color='var(--taupe)'">Delete Room</button>
+    </div>
+    <div class="room-meta-row">
+      <div class="meta-card">
+        <div class="meta-card-label">Design Theme</div>
+        <div class="theme-grid">
+          ${THEMES.map(t=>`<div class="theme-chip ${room.theme===t.name?'selected':''}" style="background:${t.color};color:${t.text}" onclick="setTheme('${room.id}','${t.name}')">${t.name}</div>`).join('')}
+        </div>
+      </div>
+      <div class="meta-card">
+        <div class="meta-card-label">Paint Colors</div>
+        <div class="color-swatches">
+          ${PAINT_COLORS.map(c=>`<div class="color-swatch ${room.selectedColors.includes(c.name)?'selected':''}" style="background:${c.hex}" onclick="toggleColor('${room.id}','${c.name}')" title="${c.name}"><span class="swatch-name">${c.name}</span></div>`).join('')}
+        </div>
+        ${room.selectedColors.length
+          ? `<div class="paint-row">${room.selectedColors.map(n=>{const c=PAINT_COLORS.find(p=>p.name===n);return c?`<div class="paint-chip"><div class="paint-dot" style="background:${c.hex}"></div>${n}</div>`:''}).join('')}</div>`
+          : '<p style="font-size:0.65rem;color:var(--taupe);margin-top:0.5rem">Click swatches to select colors</p>'}
+      </div>
+    </div>
+    <div class="meta-card" style="margin-bottom:1.5rem">
+      <div class="meta-card-label">Notes & Inspiration</div>
+      <textarea rows="3" placeholder="Style notes, links, inspiration sources…" oninput="updateNotes('${room.id}',this.value)">${room.notes}</textarea>
+    </div>
+    <div class="meta-card" style="margin-bottom:1.5rem">
+      <div class="budget-header">
+        <div class="budget-title">Budget Tracker</div>
+        <div class="budget-total">$${room.budget.reduce((s,b)=>s+(parseFloat(b.amount)||0),0).toLocaleString()}</div>
+      </div>
+      ${room.budget.map((b,idx)=>`
+        <div class="budget-row">
+          <input class="budget-label-input" type="text" value="${b.label}" placeholder="Item…" oninput="updateBudget('${room.id}',${idx},'label',this.value)" />
+          <input class="budget-amount-input" type="number" value="${b.amount}" placeholder="$0" oninput="updateBudget('${room.id}',${idx},'amount',this.value)" />
+          <button onclick="removeBudgetItem('${room.id}',${idx})" class="item-btn delete">✕</button>
+        </div>`).join('')}
+      <div class="budget-row" style="margin-top:0.5rem">
+        <button onclick="addBudgetItem('${room.id}')" class="add-btn" style="font-size:0.62rem">+ Add Budget Item</button>
+      </div>
+    </div>`;
+
+  CATEGORIES.forEach(cat => {
+    const cd = room.categories[cat.id];
+    const cdone = cd.items.filter(i=>i.done).length;
+    html += `
+      <div class="category-section">
+        <div class="category-header" onclick="toggleCategory('${room.id}','${cat.id}')">
+          <span class="category-icon">${cat.icon}</span>
+          <span class="category-name">${cat.label}</span>
+          <span class="category-count">${cdone}/${cd.items.length}</span>
+          <span class="category-toggle ${cd.collapsed?'':'open'}">▶</span>
+        </div>
+        ${cd.collapsed ? '' : `
+        <div class="checklist">
+          ${cd.items.map(item=>`
+            <div class="checklist-item ${item.done?'done':''}" id="item-${item.id}">
+              <div class="item-check" onclick="toggleItem('${room.id}','${cat.id}','${item.id}')"><span class="check-mark">✓</span></div>
+              <div class="item-text" contenteditable="true" onblur="editItem('${room.id}','${cat.id}','${item.id}',this.textContent)">${item.text}</div>
+              <span class="item-priority priority-${item.priority}">${item.priority}</span>
+              <div class="item-actions">
+                <button class="item-btn" onclick="cyclePriority('${room.id}','${cat.id}','${item.id}')">↑</button>
+                <button class="item-btn delete" onclick="deleteItem('${room.id}','${cat.id}','${item.id}')">✕</button>
+              </div>
+            </div>`).join('')}
+        </div>
+        <div class="add-item-row">
+          <input class="add-item-input" type="text" placeholder="Add task…" id="input-${room.id}-${cat.id}" onkeydown="if(event.key==='Enter')addItem('${room.id}','${cat.id}')" />
+          <select class="priority-select" id="pri-${room.id}-${cat.id}">
+            <option value="low">low</option><option value="med" selected>med</option><option value="high">high</option>
+          </select>
+          <button class="add-btn" onclick="addItem('${room.id}','${cat.id}')">+</button>
+        </div>`}
+      </div>`;
+  });
+
+  document.getElementById('main-content').innerHTML = html;
+}
+
+// ── ACTIONS ────────────────────────────────────────────────────
+function selectRoom(id) { state.activeRoom = id; render(); }
+
+function addRoom() {
+  const input = document.getElementById('new-room-input');
+  const name = input.value.trim(); if (!name) return;
+  const room = createRoom(name, state.rooms.length);
+  CATEGORIES.forEach(cat => { (DEFAULT_ITEMS[cat.id]||[]).forEach(text => { room.categories[cat.id].items.push({ id: uid(), text, done: false, priority: 'med' }); }); });
+  state.rooms.push(room); state.activeRoom = room.id; input.value = '';
+  render(); markUnsaved();
+}
+
+function deleteRoom(id) {
+  if (!confirm('Delete this room and all its tasks?')) return;
+  state.rooms = state.rooms.filter(r=>r.id!==id);
+  state.activeRoom = state.rooms[0]?.id || null;
+  render(); markUnsaved();
+}
+
+function toggleItem(rId, cId, iId) {
+  state.rooms.find(r=>r.id===rId).categories[cId].items.find(i=>i.id===iId).done ^= true;
+  render(); markUnsaved();
+}
+
+function editItem(rId, cId, iId, text) {
+  state.rooms.find(r=>r.id===rId).categories[cId].items.find(i=>i.id===iId).text = text.trim();
+  markUnsaved(); renderStats(); renderSidebar();
+}
+
+function deleteItem(rId, cId, iId) {
+  const room = state.rooms.find(r=>r.id===rId);
+  room.categories[cId].items = room.categories[cId].items.filter(i=>i.id!==iId);
+  render(); markUnsaved();
+}
+
+function cyclePriority(rId, cId, iId) {
+  const item = state.rooms.find(r=>r.id===rId).categories[cId].items.find(i=>i.id===iId);
+  item.priority = ['low','med','high'][(['low','med','high'].indexOf(item.priority)+1)%3];
+  render(); markUnsaved();
+}
+
+function addItem(rId, cId) {
+  const input = document.getElementById(`input-${rId}-${cId}`);
+  const pri   = document.getElementById(`pri-${rId}-${cId}`);
+  const text = input.value.trim(); if (!text) return;
+  state.rooms.find(r=>r.id===rId).categories[cId].items.push({ id: uid(), text, done: false, priority: pri.value });
+  input.value = ''; render(); markUnsaved();
+}
+
+function toggleCategory(rId, cId) {
+  state.rooms.find(r=>r.id===rId).categories[cId].collapsed ^= true; render();
+}
+
+function setTheme(rId, theme) {
+  const room = state.rooms.find(r=>r.id===rId);
+  room.theme = room.theme === theme ? '' : theme;
+  render(); markUnsaved();
+}
+
+function toggleColor(rId, colorName) {
+  const room = state.rooms.find(r=>r.id===rId);
+  room.selectedColors = room.selectedColors.includes(colorName)
+    ? room.selectedColors.filter(c=>c!==colorName)
+    : [...room.selectedColors, colorName];
+  render(); markUnsaved();
+}
+
+function updateNotes(rId, value) { state.rooms.find(r=>r.id===rId).notes = value; markUnsaved(); }
+
+function addBudgetItem(rId) { state.rooms.find(r=>r.id===rId).budget.push({ label:'', amount:'' }); render(); markUnsaved(); }
+function removeBudgetItem(rId, idx) { state.rooms.find(r=>r.id===rId).budget.splice(idx,1); render(); markUnsaved(); }
+function updateBudget(rId, idx, field, value) { state.rooms.find(r=>r.id===rId).budget[idx][field] = value; markUnsaved(); renderStats(); }
+
+// ── INIT ───────────────────────────────────────────────────────
+document.getElementById('new-room-input').addEventListener('keydown', e => { if(e.key==='Enter') addRoom(); });
+loadFromServer();
+</script>
+</body>
+</html>
